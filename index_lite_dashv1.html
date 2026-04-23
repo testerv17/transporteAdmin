@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transporte Fronterizo Lite · Supabase</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--bg:#0b1220;--panel:#121b2e;--panel-2:#18243a;--line:#24324d;--text:#eef4ff;--muted:#9db0d1;--primary:#4da3ff;--primary-2:#1f6feb;--success:#1fbf75;--warning:#f4b400;--danger:#ef4444;--soft:#0f1728;--shadow:0 12px 35px rgba(0,0,0,.28);--radius:18px}
+    *{box-sizing:border-box}html,body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#08111f 0%,#0d1728 100%);color:var(--text)}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.sidebar{background:rgba(8,14,26,.96);border-right:1px solid var(--line);padding:22px 16px;position:sticky;top:0;height:100vh}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:24px}.brand-badge{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--primary),#6dd3ff);box-shadow:var(--shadow)}
+    .brand h1{font-size:18px;margin:0}.brand p{margin:3px 0 0;color:var(--muted);font-size:12px}.nav{display:flex;flex-direction:column;gap:10px}
+    .nav button{width:100%;border:none;background:transparent;color:var(--text);text-align:left;padding:13px 14px;border-radius:14px;cursor:pointer;font-size:14px;transition:.2s ease;border:1px solid transparent}
+    .nav button:hover,.nav button.active{background:rgba(77,163,255,.12);border-color:rgba(77,163,255,.25)}.main{padding:22px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+    .topbar h2{margin:0;font-size:28px}.topbar p{margin:5px 0 0;color:var(--muted)}.top-actions{display:flex;gap:10px;flex-wrap:wrap}.btn{border:none;padding:12px 16px;border-radius:12px;cursor:pointer;font-weight:bold;transition:.2s ease}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}.btn-dark{background:var(--panel);color:#fff;border:1px solid var(--line)}.btn:hover{transform:translateY(-1px)}
+    .grid-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}.card{background:rgba(18,27,46,.95);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+    .card h3,.section-title{margin:0 0 12px;font-size:16px}.metric{font-size:30px;font-weight:bold;margin-bottom:6px}.muted{color:var(--muted);font-size:13px}.content-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}
+    .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.field{display:flex;flex-direction:column;gap:8px}.field.full{grid-column:1 / -1}label{font-size:13px;color:#dce8ff;font-weight:bold}
+    input,select,textarea{width:100%;background:var(--soft);color:#fff;border:1px solid #30415f;border-radius:12px;padding:12px 13px;outline:none;font-size:14px} input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(77,163,255,.12)}
+    .inline-row{display:flex;gap:10px;flex-wrap:wrap}.inline-row>*{flex:1}.passenger-box{margin-top:12px;padding:14px;border-radius:14px;border:1px dashed #3b4d71;background:rgba(9,17,32,.45)}
+    .passenger-selected{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;margin-bottom:10px;border-radius:12px;background:rgba(77,163,255,.08);border:1px solid rgba(77,163,255,.25)}
+    .passenger-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.tag{padding:7px 10px;border-radius:999px;font-size:12px;font-weight:bold;border:1px solid transparent}.tag-green{background:rgba(31,191,117,.12);color:#9bf0c3;border-color:rgba(31,191,117,.25)}.tag-yellow{background:rgba(244,180,0,.12);color:#ffd86a;border-color:rgba(244,180,0,.25)}.tag-red{background:rgba(239,68,68,.12);color:#ff9e9e;border-color:rgba(239,68,68,.25)}.tag-blue{background:rgba(77,163,255,.12);color:#9fd0ff;border-color:rgba(77,163,255,.25)}
+    @keyframes blink-warning{0%{box-shadow:0 0 0 rgba(244,180,0,.10);opacity:1}50%{box-shadow:0 0 14px rgba(244,180,0,.78),0 0 28px rgba(244,180,0,.28);opacity:.92}100%{box-shadow:0 0 0 rgba(244,180,0,.10);opacity:1}}
+    @keyframes blink-danger{0%{box-shadow:0 0 0 rgba(239,68,68,.10);opacity:1}50%{box-shadow:0 0 16px rgba(239,68,68,.95),0 0 30px rgba(239,68,68,.32);opacity:.9}100%{box-shadow:0 0 0 rgba(239,68,68,.10);opacity:1}}
+    .blink-warning{animation:blink-warning 1.6s ease-in-out infinite}
+    .blink-danger{animation:blink-danger 1.15s ease-in-out infinite}
+
+    .table-wrap{overflow:auto;max-height:420px;border-radius:16px;border:1px solid var(--line)}table{width:100%;border-collapse:collapse;min-width:780px;background:rgba(18,27,46,.9)}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}th{color:#cfe0ff;background:#101a2c;position:sticky;top:0;z-index:1}tr:hover td{background:rgba(255,255,255,.015)}.table-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 4px 0}.table-count{font-size:12px;color:var(--muted)}.pagination{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.page-btn{border:1px solid var(--line);background:var(--panel);color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700}.page-btn.active{background:rgba(77,163,255,.15);border-color:rgba(77,163,255,.35);color:#9fd0ff}.page-btn:disabled{opacity:.45;cursor:not-allowed}
+    .alert-list{display:flex;flex-direction:column;gap:12px}.alert-item{padding:14px;border-radius:14px;border:1px solid var(--line);background:rgba(9,17,31,.5)}.alert-item strong{display:block;margin-bottom:6px}.status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:bold}.status-ok{background:rgba(31,191,117,.12);color:#9bf0c3}.status-warning{background:rgba(244,180,0,.12);color:#ffd86a}.status-danger{background:rgba(239,68,68,.12);color:#ff9e9e}
+    .section{display:none}.section.active{display:block}.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.mini{font-size:12px;color:var(--muted)}.empty{padding:20px;text-align:center;color:var(--muted)}.section-header-inline{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .search-result{padding:14px;border-radius:14px;border:1px solid var(--line);background:rgba(9,17,31,.5);margin-bottom:12px}.helper{font-size:12px;color:#9fd0ff}.footer-note{margin-top:12px;font-size:12px;color:var(--muted)}.action-inline{display:flex;gap:8px;flex-wrap:wrap}.btn-sm{padding:8px 10px;border-radius:10px;font-size:12px}.btn-danger{background:linear-gradient(135deg,var(--danger),#c53030);color:#fff}.table-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .modal-overlay{position:fixed;inset:0;background:rgba(3,8,15,.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999}.modal-overlay.show{display:flex}.modal-card{width:min(760px,100%);max-height:min(88vh,900px);overflow:auto;background:linear-gradient(180deg,rgba(18,27,46,.98) 0%,rgba(10,18,32,.99) 100%);border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.45);padding:22px}.modal-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}.modal-header h3{margin:0 0 6px;font-size:22px}.modal-header p{margin:0;color:var(--muted);font-size:13px}.close-btn{border:none;background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700}.modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:20px}.danger-zone{margin-top:20px;padding:16px;border-radius:16px;border:1px solid rgba(239,68,68,.25);background:rgba(239,68,68,.08)}.danger-zone h4{margin:0 0 6px;color:#ffb4b4}@media (max-width:640px){.modal-overlay{padding:12px;align-items:flex-end}.modal-card{width:100%;max-height:92vh;padding:16px;border-radius:20px 20px 0 0}.modal-header{align-items:flex-start;flex-direction:column}.close-btn{width:100%}.modal-actions{flex-direction:column}.modal-actions .btn{width:100%}}@media (max-width:1100px){.grid-cards{grid-template-columns:repeat(2,1fr)}.content-grid{grid-template-columns:1fr}} @media (max-width:820px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)}.nav{flex-direction:row;overflow:auto}.nav button{min-width:170px}} @media (max-width:640px){.main{padding:16px}.grid-cards{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.kpi-row{grid-template-columns:1fr}.topbar h2{font-size:22px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-badge"></div><div><h1>Transporte Fronterizo Lite</h1><p>Supabase · datos reales</p></div></div>
+      <div class="nav">
+        <button class="active" data-section="dashboard">Dashboard</button>
+        <button data-section="nuevo-viaje">Nuevo viaje</button>
+        <button data-section="pasajeros">Pasajeros</button>
+        <button data-section="documentos">Documentos</button>
+        <button data-section="reportes">Reportes</button>
+        <button data-section="localizador">Localizador</button>
+        <button data-section="historial">Historial</button>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div><h2>Lite v1 funcional</h2><p>Captura y consulta real conectada a Supabase.</p></div>
+        <div class="top-actions">
+          <button class="btn btn-dark" id="btnRefresh">Sincronizar</button>
+          <button class="btn btn-primary" id="btnSeed">Cargar demo inicial</button>
+        </div>
+      </div>
+
+      <section class="section active" id="dashboard">
+        <div class="grid-cards" id="dashboardCards"></div>
+        <div class="content-grid">
+          <div class="card"><h3 class="section-title">Próximos vencimientos de visa</h3><div class="alert-list" id="visaAlerts"></div></div>
+          <div class="card"><h3 class="section-title">Resumen operativo</h3><div class="kpi-row" id="kpiSummary"></div></div>
+        </div>
+        <div class="card"><h3 class="section-title">Viajes recientes</h3><div class="table-wrap"><table><thead><tr><th>Folio</th><th>Fecha</th><th>Destino</th><th>Unidad</th><th>Pasajeros</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Status</th></tr></thead><tbody id="recentTripsTable"></tbody></table></div><div class="table-meta"><div class="table-count" id="recentTripsTableCount"></div><div class="pagination" id="recentTripsTablePagination"></div></div></div>
+      </section>
+
+      <section class="section" id="nuevo-viaje">
+        <div class="content-grid">
+          <div class="card">
+            <h3 class="section-title">Registro de nuevo viaje</h3>
+            <div class="form-grid">
+              <div class="field"><label>Fecha de salida</label><input type="date" id="tripDate" /></div>
+              <div class="field"><label>Tipo de unidad</label><select id="tripUnit"><option>Sprinter 18</option><option>Van 15</option><option>SUV 6</option><option>Autobús 40</option></select></div>
+              <div class="field"><label>Cliente / renta a nombre de</label><input type="text" id="tripClient" placeholder="Ej. María González" /></div>
+              <div class="field"><label>Destino</label><select id="tripDestination"><option>McAllen</option><option>Laredo</option><option>Brownsville</option><option>Eagle Pass</option></select></div>
+              <div class="field"><label>Operador</label><input type="text" id="tripOperator" placeholder="Ej. José Martínez" /></div>
+              <div class="field"><label>Hora de salida</label><input type="time" id="tripTime" /></div>
+              <div class="field"><label>Punto de salida</label><input type="text" id="tripPoint" placeholder="Ej. Monterrey Centro" /></div>
+              <div class="field"><label>Precio por persona (MXN)</label><input type="number" id="tripPrice" value="850" /></div>
+              <div class="field"><label>Anticipo total (MXN)</label><input type="number" id="tripAdvance" value="1000" /></div>
+              <div class="field full"><label>Agregar pasajero existente</label><div class="inline-row"><select id="existingPassengerSelect"></select><button class="btn btn-dark" id="addExistingPassengerBtn" type="button">Agregar existente</button></div></div>
+              <div class="field full"><label>Agregar pasajero nuevo</label>
+                <div class="passenger-box"><div class="form-grid">
+                  <div class="field"><label>Nombre completo</label><input type="text" id="newPassengerName" placeholder="Ej. Juan Pérez" /></div>
+                  <div class="field"><label>Teléfono</label><input type="text" id="newPassengerPhone" placeholder="Ej. 8112345678" /></div>
+                  <div class="field"><label>Vencimiento visa USA</label><input type="date" id="newPassengerVisaExpiry" /></div>
+                  <div class="field"><label>Tipo pasajero</label><select id="newPassengerType"><option value="Nuevo">Nuevo</option><option value="Recurrente">Recurrente</option></select></div>
+                </div><div style="margin-top:12px;"><button class="btn btn-primary" type="button" id="addNewPassengerBtn">Guardar pasajero y agregar</button></div></div>
+              </div>
+              <div class="field full"><label>Pasajeros seleccionados</label><div id="selectedPassengersContainer"></div></div>
+            </div>
+          </div>
+          <div class="card"><h3 class="section-title">Resumen del viaje</h3><div id="tripSummaryBox"></div><div style="margin-top:18px;"><button class="btn btn-primary" id="saveTripBtn" style="width:100%;">Guardar viaje en Supabase</button></div><div class="footer-note">Este botón crea el viaje y liga los pasajeros seleccionados.</div></div>
+        </div>
+      </section>
+
+      <section class="section" id="pasajeros"><div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;"><h3 class="section-title">Base de pasajeros</h3><button class="btn btn-primary btn-sm" id="btnAddPassengerQuick">Agregar pasajero</button></div><div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Tipo</th><th>Último viaje</th><th>Vencimiento visa</th><th>Status visa</th><th>Acciones</th></tr></thead><tbody id="passengersTable"></tbody></table></div><div class="table-meta"><div class="table-count" id="passengersTableCount"></div><div class="pagination" id="passengersTablePagination"></div></div></div></section>
+      <section class="section" id="documentos"><div class="card"><h3 class="section-title">Control de documentos y vigencia</h3><div class="table-wrap"><table><thead><tr><th>Pasajero</th><th>Documento</th><th>Vencimiento</th><th>Días restantes</th><th>Semáforo</th><th>Acción sugerida</th><th>Acciones</th></tr></thead><tbody id="documentsTable"></tbody></table></div><div class="table-meta"><div class="table-count" id="documentsTableCount"></div><div class="pagination" id="documentsTablePagination"></div></div></div></section>
+
+      <section class="section" id="reportes">
+        <div class="card" style="margin-bottom:16px;">
+          <h3 class="section-title">Consulta de reportes</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>Concepto</label>
+              <select id="reportConcept">
+                <option value="alerta">Documentos con alerta</option>
+                <option value="proximos">Próximos por vencer</option>
+                <option value="vencidos">Documentos vencidos</option>
+                <option value="vigentes">Documentos vigentes</option>
+                <option value="sin_documento">Sin documento capturado</option>
+                <option value="todos">Todos los pasajeros</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Buscar pasajero</label>
+              <input type="text" id="reportSearch" placeholder="Nombre o teléfono" />
+            </div>
+            <div class="field">
+              <label>Fecha desde</label>
+              <input type="date" id="reportDateFrom" />
+            </div>
+            <div class="field">
+              <label>Fecha hasta</label>
+              <input type="date" id="reportDateTo" />
+            </div>
+            <div class="field full">
+              <div class="inline-row">
+                <button class="btn btn-primary" type="button" id="btnRunReport">Consultar reporte</button>
+                <button class="btn btn-dark" type="button" id="btnClearReportFilters">Limpiar filtros</button>
+                <button class="btn btn-dark" type="button" id="btnExportReport">Exportar CSV</button>
+              </div>
+            </div>
+          </div>
+          <div class="footer-note">Consulta los datos que ya existen en el sistema usando filtros por concepto, pasajero y rango de fechas de vencimiento.</div>
+        </div>
+
+        <div class="grid-cards" id="reportsCards"></div>
+
+        <div class="card">
+          <div class="section-header-inline">
+            <h3 class="section-title">Resultados del reporte</h3>
+            <div class="helper" id="reportAppliedLabel">Sin filtros aplicados</div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Pasajero</th><th>Teléfono</th><th>Tipo</th><th>Vencimiento</th><th>Días</th><th>Status</th></tr></thead><tbody id="reportQueryTable"></tbody></table></div>
+          <div class="table-meta"><div class="table-count" id="reportQueryTableCount"></div><div class="pagination" id="reportQueryTablePagination"></div></div>
+        </div>
+      </section>
+
+      <section class="section" id="localizador"><div class="card"><h3 class="section-title">Localizador de pasajeros</h3><div class="inline-row" style="margin-bottom:16px;"><input type="text" id="locatorInput" placeholder="Busca por nombre o teléfono" /><button class="btn btn-primary" id="locatorBtn">Buscar</button></div><div id="locatorResults"></div></div></section>
+      <section class="section" id="historial"><div class="card"><h3 class="section-title">Historial de viajes</h3><div class="table-wrap"><table><thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Destino</th><th>Unidad</th><th>Pasajeros</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Status</th><th>Acciones</th></tr></thead><tbody id="historyTripsTable"></tbody></table></div><div class="table-meta"><div class="table-count" id="historyTripsTableCount"></div><div class="pagination" id="historyTripsTablePagination"></div></div></div></section>
+    </main>
+  </div>
+
+
+  <div class="modal-overlay" id="crudModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="crudModalTitle">Editar registro</h3>
+          <p id="crudModalSubtitle">Actualiza la información necesaria.</p>
+        </div>
+        <button class="close-btn" type="button" id="crudModalClose">Cerrar</button>
+      </div>
+      <form id="crudForm">
+        <div class="form-grid" id="crudFields"></div>
+        <div class="danger-zone" id="crudDangerZone" style="display:none;">
+          <h4>Zona de eliminación</h4>
+          <div class="helper" id="crudDangerText">Esta acción no se puede deshacer.</div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-danger" type="button" id="crudDeleteBtn">Eliminar registro</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-dark" type="button" id="crudCancelBtn">Cancelar</button>
+          <button class="btn btn-primary" type="submit" id="crudSaveBtn">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://qxdnbkflhxwtlgfukfow.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_UY9HQKWdAiSbPKqKrUySOw_BQQ1rH-W";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let passengers = [];
+    let trips = [];
+    let selectedPassengers = [];
+    let travelLinks = [];
+
+    const navButtons = document.querySelectorAll('.nav button');
+    const sections = document.querySelectorAll('.section');
+    navButtons.forEach(btn => btn.addEventListener('click', () => activateSection(btn.dataset.section)));
+    document.getElementById('btnRefresh').addEventListener('click', refreshAll);
+    document.getElementById('addExistingPassengerBtn').addEventListener('click', addExistingPassenger);
+    document.getElementById('addNewPassengerBtn').addEventListener('click', addNewPassenger);
+    document.getElementById('saveTripBtn').addEventListener('click', saveTrip);
+    document.getElementById('tripPrice').addEventListener('input', updateTripSummary);
+    document.getElementById('tripAdvance').addEventListener('input', updateTripSummary);
+    document.getElementById('locatorBtn').addEventListener('click', runLocator);
+    document.getElementById('locatorInput').addEventListener('keydown', e => { if(e.key === 'Enter') runLocator(); });
+    document.getElementById('btnSeed').addEventListener('click', seedDemoData);
+    document.getElementById('btnAddPassengerQuick').addEventListener('click', quickAddPassenger);
+    document.getElementById('btnRunReport').addEventListener('click', () => { paginationState.reportQueryTable = 1; fillReports(); });
+    document.getElementById('btnClearReportFilters').addEventListener('click', clearReportFilters);
+    document.getElementById('btnExportReport').addEventListener('click', exportReportCSV);
+
+    function activateSection(sectionId){
+      navButtons.forEach(b => b.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+      document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+      document.getElementById(sectionId).classList.add('active');
+    }
+
+    function money(value){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Number(value||0)); }
+    function daysUntil(dateStr){ if(!dateStr) return 9999; const today = new Date(); today.setHours(0,0,0,0); const target = new Date(dateStr + 'T00:00:00'); return Math.ceil((target-today)/(1000*60*60*24)); }
+    function getVisaStatus(dateStr){ const days = daysUntil(dateStr); if(!dateStr) return {label:'Sin dato', class:'tag-blue'}; if(days < 0) return {label:'Vencido', class:'tag-red blink-danger'}; if(days <= 7) return {label:'Urgente', class:'tag-red blink-danger'}; if(days <= 30) return {label:'Próximo', class:'tag-yellow blink-warning'}; return {label:'Vigente', class:'tag-green'}; }
+    function renderStatusPill(status){ let cls='status-ok'; if(status==='Pendiente') cls='status-warning'; if(status==='Cancelado') cls='status-danger'; return `<span class="status-pill ${cls}">${status}</span>`; }
+
+    const PAGE_SIZE = 8;
+    const paginationState = {
+      recentTripsTable: 1,
+      historyTripsTable: 1,
+      passengersTable: 1,
+      documentsTable: 1,
+      reportQueryTable: 1
+    };
+
+    function paginateRows(rows, tableId){
+      const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+      if((paginationState[tableId] || 1) > totalPages) paginationState[tableId] = totalPages;
+      const currentPage = paginationState[tableId] || 1;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      return {
+        rows: rows.slice(start, start + PAGE_SIZE),
+        totalPages,
+        currentPage,
+        totalItems: rows.length,
+        startIndex: rows.length ? start + 1 : 0,
+        endIndex: Math.min(start + PAGE_SIZE, rows.length)
+      };
+    }
+
+    function changePage(tableId, nextPage){
+      paginationState[tableId] = nextPage;
+      if(tableId === 'recentTripsTable' || tableId === 'historyTripsTable'){
+        renderTripsTable('recentTripsTable', false);
+        renderTripsTable('historyTripsTable', true);
+      }
+      if(tableId === 'passengersTable') fillPassengersTable();
+      if(tableId === 'documentsTable') fillDocumentsTable();
+      if(tableId === 'reportQueryTable') fillReports();
+    }
+
+    function renderPagination(tableId, meta){
+      const wrap = document.getElementById(tableId + 'Pagination');
+      const count = document.getElementById(tableId + 'Count');
+      if(count){
+        count.textContent = meta.totalItems
+          ? `Mostrando ${meta.startIndex}-${meta.endIndex} de ${meta.totalItems} registros`
+          : 'Sin registros';
+      }
+      if(!wrap) return;
+      if(meta.totalPages <= 1){
+        wrap.innerHTML = '';
+        return;
+      }
+      let buttons = `<button class="page-btn" ${meta.currentPage===1?'disabled':''} onclick="changePage('${tableId}', ${meta.currentPage - 1})">Anterior</button>`;
+      for(let i=1;i<=meta.totalPages;i++){
+        buttons += `<button class="page-btn ${i===meta.currentPage?'active':''}" onclick="changePage('${tableId}', ${i})">${i}</button>`;
+      }
+      buttons += `<button class="page-btn" ${meta.currentPage===meta.totalPages?'disabled':''} onclick="changePage('${tableId}', ${meta.currentPage + 1})">Siguiente</button>`;
+      wrap.innerHTML = buttons;
+    }
+
+
+
+    function reportRows(mode){
+      const concept = mode || document.getElementById('reportConcept')?.value || 'alerta';
+      const search = (document.getElementById('reportSearch')?.value || '').trim().toLowerCase();
+      const from = document.getElementById('reportDateFrom')?.value || '';
+      const to = document.getElementById('reportDateTo')?.value || '';
+
+      return passengers.filter(p => {
+        const days = p.visa_expiry ? daysUntil(p.visa_expiry) : null;
+
+        let conceptMatch = true;
+        if(concept === 'alerta') conceptMatch = !!p.visa_expiry && days <= 30;
+        else if(concept === 'proximos') conceptMatch = !!p.visa_expiry && days >= 0 && days <= 30;
+        else if(concept === 'vencidos') conceptMatch = !!p.visa_expiry && days < 0;
+        else if(concept === 'vigentes') conceptMatch = !!p.visa_expiry && days > 30;
+        else if(concept === 'sin_documento') conceptMatch = !p.visa_expiry;
+        else if(concept === 'todos') conceptMatch = true;
+
+        const searchMatch = !search || (p.nombre || '').toLowerCase().includes(search) || (p.telefono || '').toLowerCase().includes(search);
+
+        let dateMatch = true;
+        if(from || to){
+          if(!p.visa_expiry) dateMatch = false;
+          else {
+            if(from && p.visa_expiry < from) dateMatch = false;
+            if(to && p.visa_expiry > to) dateMatch = false;
+          }
+        }
+
+        return conceptMatch && searchMatch && dateMatch;
+      }).sort((a,b) => {
+        if(!a.visa_expiry && !b.visa_expiry) return (a.nombre||'').localeCompare(b.nombre||'');
+        if(!a.visa_expiry) return 1;
+        if(!b.visa_expiry) return -1;
+        return a.visa_expiry.localeCompare(b.visa_expiry);
+      });
+    }
+
+    function reportLabel(){
+      const concept = document.getElementById('reportConcept')?.value || 'alerta';
+      const search = (document.getElementById('reportSearch')?.value || '').trim();
+      const from = document.getElementById('reportDateFrom')?.value || '';
+      const to = document.getElementById('reportDateTo')?.value || '';
+      const labels = {
+        alerta:'Documentos con alerta',
+        proximos:'Próximos por vencer',
+        vencidos:'Documentos vencidos',
+        vigentes:'Documentos vigentes',
+        sin_documento:'Sin documento capturado',
+        todos:'Todos los pasajeros'
+      };
+      const parts = [labels[concept] || 'Consulta'];
+      if(search) parts.push('Búsqueda: ' + search);
+      if(from) parts.push('Desde: ' + from);
+      if(to) parts.push('Hasta: ' + to);
+      return parts.join(' · ');
+    }
+
+    function fillReports(){
+      const upcoming = passengers.filter(p => p.visa_expiry && daysUntil(p.visa_expiry) >= 0 && daysUntil(p.visa_expiry) <= 30);
+      const expired = passengers.filter(p => p.visa_expiry && daysUntil(p.visa_expiry) < 0);
+      const vigentes = passengers.filter(p => p.visa_expiry && daysUntil(p.visa_expiry) > 30);
+      const sinDocumento = passengers.filter(p => !p.visa_expiry);
+      const filtered = reportRows();
+
+      const reportsCards = document.getElementById('reportsCards');
+      if(reportsCards){
+        reportsCards.innerHTML = `
+          <div class="card"><h3>Por vencer</h3><div class="metric">${upcoming.length}</div><div class="muted">Próximos 30 días</div></div>
+          <div class="card"><h3>Vencidos</h3><div class="metric">${expired.length}</div><div class="muted">No deben abordar EUA</div></div>
+          <div class="card"><h3>Vigentes</h3><div class="metric">${vigentes.length}</div><div class="muted">Más de 30 días</div></div>
+          <div class="card"><h3>Resultado consulta</h3><div class="metric">${filtered.length}</div><div class="muted">Coincidencias con filtros</div></div>
+        `;
+      }
+
+      const label = document.getElementById('reportAppliedLabel');
+      if(label) label.textContent = reportLabel();
+
+      const meta = paginateRows(filtered, 'reportQueryTable');
+      document.getElementById('reportQueryTable').innerHTML = meta.rows.map(p => {
+        const days = p.visa_expiry ? daysUntil(p.visa_expiry) : '—';
+        const visa = getVisaStatus(p.visa_expiry);
+        return `<tr><td>${p.nombre}</td><td>${p.telefono || '—'}</td><td>${p.tipo || '—'}</td><td>${p.visa_expiry || '—'}</td><td>${typeof days === 'number' ? days : '—'}</td><td><span class="tag ${visa.class}">${visa.label}</span></td></tr>`;
+      }).join('') || `<tr><td colspan="6" class="empty">No hay resultados para la consulta actual.</td></tr>`;
+      renderPagination('reportQueryTable', meta);
+    }
+
+    function exportReportCSV(){
+      const rows = reportRows();
+      const headers = ['Pasajero','Telefono','Tipo','Vencimiento','Dias','Status'];
+      const csvRows = [headers.join(',')];
+      rows.forEach(p => {
+        const days = p.visa_expiry ? daysUntil(p.visa_expiry) : '';
+        const status = getVisaStatus(p.visa_expiry).label;
+        csvRows.push([p.nombre, p.telefono || '', p.tipo || '', p.visa_expiry || '', days, status].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+      });
+      const blob = new Blob([csvRows.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'reporte_documentos_filtrado.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearReportFilters(){
+      document.getElementById('reportConcept').value = 'alerta';
+      document.getElementById('reportSearch').value = '';
+      document.getElementById('reportDateFrom').value = '';
+      document.getElementById('reportDateTo').value = '';
+      paginationState.reportQueryTable = 1;
+      fillReports();
+    }
+
+
+    async function refreshAll(){
+      await Promise.all([loadPassengers(), loadTrips(), loadTravelLinks()]);
+      fillExistingPassengerSelect();
+      fillDashboardCards();
+      fillVisaAlerts();
+      fillKpiSummary();
+      renderTripsTable('recentTripsTable', false);
+      renderTripsTable('historyTripsTable', true);
+      fillPassengersTable();
+      fillDocumentsTable();
+      fillReports();
+      renderSelectedPassengers();
+      runLocator();
+    }
+
+    async function loadPassengers(){
+      const { data, error } = await sb.from('pasajeros').select('*').order('created_at', { ascending:false });
+      if(error){ alert('Error cargando pasajeros: ' + error.message); return; }
+      passengers = data || [];
+    }
+
+    async function loadTrips(){
+      const { data, error } = await sb.from('viajes').select('*').order('fecha_salida', { ascending:false });
+      if(error){ alert('Error cargando viajes: ' + error.message); return; }
+      trips = data || [];
+    }
+
+    async function loadTravelLinks(){
+      const { data, error } = await sb.from('viaje_pasajeros').select('id, viaje_id, pasajero_id, abordaje_status, pago_status, asiento, nota').order('created_at',{ascending:false});
+      if(error){ alert('Error cargando asignaciones: ' + error.message); return; }
+      travelLinks = data || [];
+    }
+
+    function fillDashboardCards(){
+      const totalTrips = trips.length;
+      const totalPassengers = passengers.length;
+      const totalRevenue = trips.reduce((acc,t) => acc + Number(t.total||0), 0);
+      const pendingBalances = trips.reduce((acc,t) => acc + Number(t.saldo||0), 0);
+      const cards = [
+        { title:'Viajes registrados', value: totalTrips, text:'Control de salidas reales' },
+        { title:'Pasajeros registrados', value: totalPassengers, text:'Base real en Supabase' },
+        { title:'Ingresos proyectados', value: money(totalRevenue), text:'Suma de viajes' },
+        { title:'Saldo pendiente', value: money(pendingBalances), text:'Pendiente por cobrar' }
+      ];
+      document.getElementById('dashboardCards').innerHTML = cards.map(card => `<div class="card"><h3>${card.title}</h3><div class="metric">${card.value}</div><div class="muted">${card.text}</div></div>`).join('');
+    }
+
+    function fillVisaAlerts(){
+      const soon = [...passengers].filter(p => p.visa_expiry).map(p => ({...p, days: daysUntil(p.visa_expiry), status: getVisaStatus(p.visa_expiry)})).sort((a,b) => a.days - b.days).slice(0,5);
+      const container = document.getElementById('visaAlerts');
+      container.innerHTML = soon.length ? soon.map(p => `<div class="alert-item"><strong>${p.nombre}</strong><div class="muted">Visa USA vence: ${p.visa_expiry}</div><div class="muted" style="margin-top:6px;">Días restantes: <b>${p.days}</b></div><div class="passenger-tags" style="margin-top:10px;"><span class="tag ${p.status.class}">${p.status.label}</span><span class="tag tag-blue">${p.tipo}</span></div></div>`).join('') : `<div class="empty">No hay alertas.</div>`;
+    }
+
+    function fillKpiSummary(){
+      const recurrent = passengers.filter(p => p.tipo === 'Recurrente').length;
+      const newOnes = passengers.filter(p => p.tipo === 'Nuevo').length;
+      const urgent = passengers.filter(p => p.visa_expiry && daysUntil(p.visa_expiry) <= 30).length;
+      const items = [
+        { title:'Recurrentes', value: recurrent, text:'Clientes con historial' },
+        { title:'Nuevos', value: newOnes, text:'Captura reciente' },
+        { title:'Visa por vencer', value: urgent, text:'Dentro de 30 días' }
+      ];
+      document.getElementById('kpiSummary').innerHTML = items.map(item => `<div class="card" style="padding:16px;"><div class="mini">${item.title}</div><div class="metric" style="font-size:26px;">${item.value}</div><div class="muted">${item.text}</div></div>`).join('');
+    }
+
+    function passengersCountForTrip(tripId){ return travelLinks.filter(x => x.viaje_id === tripId).length; }
+    function renderTripsTable(targetId, includeClient = false){
+      const meta = paginateRows(trips, targetId);
+      document.getElementById(targetId).innerHTML = meta.rows.map(t => `<tr><td>${t.folio}</td><td>${t.fecha_salida}${t.hora_salida ? ` ${t.hora_salida}` : ''}</td>${includeClient?`<td>${t.cliente}</td>`:''}<td>${t.destino}</td><td>${t.unidad}</td><td>${passengersCountForTrip(t.id)}</td><td>${money(t.total)}</td><td>${money(t.anticipo_total)}</td><td>${money(t.saldo)}</td><td>${renderStatusPill(t.status)}</td>${includeClient ? `<td><div class="table-actions"><button class="btn btn-dark btn-sm" onclick="openTripModal('${t.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="openTripModal('${t.id}', true)">Eliminar</button></div></td>` : ''}</tr>`).join('');
+      renderPagination(targetId, meta);
+    }
+
+    function fillPassengersTable(){
+      const meta = paginateRows(passengers, 'passengersTable');
+      document.getElementById('passengersTable').innerHTML = meta.rows.map(p => {
+        const visa = getVisaStatus(p.visa_expiry);
+        return `<tr><td>${p.nombre}</td><td>${p.telefono}</td><td>${p.tipo}</td><td>${p.last_trip || '—'}</td><td>${p.visa_expiry || '—'}</td><td><span class="tag ${visa.class}">${visa.label}</span></td><td><div class="table-actions"><button class="btn btn-dark btn-sm" onclick="openPassengerModal('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="openPassengerModal('${p.id}', true)">Eliminar</button></div></td></tr>`;
+      }).join('');
+      renderPagination('passengersTable', meta);
+    }
+
+    function fillDocumentsTable(){
+      const meta = paginateRows(passengers, 'documentsTable');
+      document.getElementById('documentsTable').innerHTML = meta.rows.map(p => {
+        const days = p.visa_expiry ? daysUntil(p.visa_expiry) : '—';
+        const visa = getVisaStatus(p.visa_expiry);
+        let action = 'Sin acción';
+        if(p.visa_expiry){ if(days < 0) action = 'No permitir confirmar viaje'; else if(days <= 7) action = 'Llamada urgente'; else if(days <= 30) action = 'Enviar recordatorio'; else action = 'Seguimiento normal'; }
+        return `<tr><td>${p.nombre}</td><td>Visa USA</td><td>${p.visa_expiry || '—'}</td><td>${days}</td><td><span class="tag ${visa.class}">${visa.label}</span></td><td>${action}</td><td><div class="table-actions"><button class="btn btn-dark btn-sm" onclick="openDocumentModal('${p.id}')">Editar documento</button><button class="btn btn-danger btn-sm" onclick="openDocumentModal('${p.id}', true)">Eliminar</button></div></td></tr>`;
+      }).join('');
+      renderPagination('documentsTable', meta);
+    }
+
+    function fillExistingPassengerSelect(){
+      const select = document.getElementById('existingPassengerSelect');
+      select.innerHTML = `<option value="">Selecciona pasajero...</option>` + passengers.map(p => `<option value="${p.id}">${p.nombre} · ${p.telefono} · vence ${p.visa_expiry || '—'}</option>`).join('');
+    }
+
+    function renderSelectedPassengers(){
+      const container = document.getElementById('selectedPassengersContainer');
+      container.innerHTML = !selectedPassengers.length ? `<div class="empty">Aún no has agregado pasajeros a este viaje.</div>` : selectedPassengers.map((p, index) => {
+        const visa = getVisaStatus(p.visa_expiry);
+        return `<div class="passenger-selected"><div><strong>${p.nombre}</strong><div class="muted">${p.telefono} · ${p.tipo}</div><div class="passenger-tags"><span class="tag ${visa.class}">Visa: ${visa.label}</span><span class="tag tag-blue">Vence: ${p.visa_expiry || '—'}</span></div></div><button class="btn btn-dark" onclick="removeSelectedPassenger(${index})">Quitar</button></div>`;
+      }).join('');
+      updateTripSummary();
+    }
+
+    function updateTripSummary(){
+      const price = Number(document.getElementById('tripPrice').value || 0);
+      const advance = Number(document.getElementById('tripAdvance').value || 0);
+      const passengersCount = selectedPassengers.length;
+      const total = passengersCount * price;
+      const balance = total - advance;
+      document.getElementById('tripSummaryBox').innerHTML = `<div class="card" style="background:rgba(9,17,31,.35); border-style:dashed;"><div class="mini">Pasajeros agregados</div><div class="metric" style="font-size:24px;">${passengersCount}</div><hr style="border-color:#23324a; opacity:.35;"><div class="mini">Total estimado</div><div class="metric" style="font-size:24px;">${money(total)}</div><div class="mini" style="margin-top:12px;">Anticipo</div><div style="font-size:22px; font-weight:bold;">${money(advance)}</div><div class="mini" style="margin-top:12px;">Saldo</div><div style="font-size:22px; font-weight:bold; color:${balance > 0 ? '#ffd86a' : '#9bf0c3'}">${money(balance)}</div></div>`;
+    }
+
+
+    function tripGoesToUSA(){
+      const destino = (document.getElementById('tripDestination')?.value || '').toLowerCase();
+      return ['mcallen','laredo','brownsville','eagle pass','usa','texas'].some(x => destino.includes(x));
+    }
+
+    function passengerCanTravelUSA(passenger){
+      if(!tripGoesToUSA()) return {ok:true};
+      const days = daysUntil(passenger.visa_expiry);
+      if(!passenger.visa_expiry || days < 0){
+        return {ok:false, message:`${passenger.nombre} no puede abordarse para viaje a Estados Unidos porque su documento está vencido o no capturado.`};
+      }
+      return {ok:true};
+    }
+
+    async function quickAddPassenger(){
+      activateSection('nuevo-viaje');
+      document.getElementById('newPassengerName').focus();
+    }
+
+
+    const crudModal = document.getElementById('crudModal');
+    const crudForm = document.getElementById('crudForm');
+    const crudFields = document.getElementById('crudFields');
+    const crudDangerZone = document.getElementById('crudDangerZone');
+    const crudDangerText = document.getElementById('crudDangerText');
+    const crudDeleteBtn = document.getElementById('crudDeleteBtn');
+    const crudModalTitle = document.getElementById('crudModalTitle');
+    const crudModalSubtitle = document.getElementById('crudModalSubtitle');
+    let crudState = { type:null, id:null };
+
+    function openCrudModal({type, title, subtitle, fieldsHtml, id, deletableText, deleteOnly=false}){
+      crudState = { type, id };
+      crudModalTitle.textContent = title;
+      crudModalSubtitle.textContent = subtitle || '';
+      crudFields.innerHTML = fieldsHtml;
+      crudDangerZone.style.display = 'block';
+      crudDangerText.textContent = deletableText || 'Esta acción no se puede deshacer.';
+      if(deleteOnly){
+        crudFields.innerHTML = '<div class="field full"><div class="helper">Se abrirá el mismo formulario para que puedas revisar el registro antes de eliminarlo.</div></div>' + crudFields.innerHTML;
+      }
+      crudModal.classList.add('show');
+      document.body.style.overflow='hidden';
+    }
+
+    function closeCrudModal(){
+      crudModal.classList.remove('show');
+      crudForm.reset();
+      crudFields.innerHTML = '';
+      crudState = { type:null, id:null };
+    }
+
+    function fieldInput(label, id, value='', type='text', extra=''){
+      return `<div class="field"><label>${label}</label><input type="${type}" id="${id}" value="${value ?? ''}" ${extra}></div>`;
+    }
+    function fieldSelect(label, id, value, options){
+      return `<div class="field"><label>${label}</label><select id="${id}">${options.map(o=>`<option value="${o}" ${o===value?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    }
+    function fieldFull(html){ return `<div class="field full">${html}</div>`; }
+
+    function openPassengerModal(id, deleteOnly=false){
+      const p = passengers.find(x => x.id === id); if(!p) return;
+      openCrudModal({
+        type:'passenger',
+        id,
+        title:'Editar pasajero',
+        subtitle:'Actualiza datos generales del pasajero o elimínalo si ya no debe aparecer en la base.',
+        deletableText:'Al eliminar el pasajero también se eliminarán sus relaciones con viajes en esta versión Lite.',
+        deleteOnly,
+        fieldsHtml:
+          fieldInput('Nombre completo','crudPassengerName',p.nombre) +
+          fieldInput('Teléfono','crudPassengerPhone',p.telefono || '') +
+          fieldSelect('Tipo de pasajero','crudPassengerType',p.tipo || 'Nuevo',['Nuevo','Recurrente']) +
+          fieldInput('Vencimiento visa USA','crudPassengerVisa',p.visa_expiry || '','date') +
+          fieldFull(`<label>Último viaje</label><input type="date" id="crudPassengerLastTrip" value="${p.last_trip || ''}">`)
+      });
+    }
+
+    function openDocumentModal(id, deleteOnly=false){
+      const p = passengers.find(x => x.id === id); if(!p) return;
+      openCrudModal({
+        type:'document',
+        id,
+        title:'Editar documento',
+        subtitle:'Gestiona el vencimiento de visa del pasajero y elimina el dato si es necesario.',
+        deletableText:'Eliminar aquí quitará la fecha de vencimiento registrada de la visa para este pasajero.',
+        deleteOnly,
+        fieldsHtml:
+          fieldFull(`<label>Pasajero</label><input type="text" value="${p.nombre}" disabled>`) +
+          fieldInput('Vencimiento visa USA','crudDocumentVisa',p.visa_expiry || '','date') +
+          fieldFull('<div class="helper">Si el viaje es a Estados Unidos y la visa está vencida o vacía, el sistema bloqueará el abordaje.</div>')
+      });
+    }
+
+    function openTripModal(id, deleteOnly=false){
+      const t = trips.find(x => x.id === id); if(!t) return;
+      openCrudModal({
+        type:'trip',
+        id,
+        title:'Editar viaje',
+        subtitle:'Actualiza información clave del viaje o elimínalo si fue capturado por error.',
+        deletableText:'Eliminar el viaje también eliminará las asignaciones de pasajeros relacionadas en esta versión Lite.',
+        deleteOnly,
+        fieldsHtml:
+          fieldInput('Cliente / renta a nombre de','crudTripClient',t.cliente || '') +
+          fieldInput('Fecha de salida','crudTripDate',t.fecha_salida || '','date') +
+          fieldInput('Hora de salida','crudTripTime',t.hora_salida || '','time') +
+          fieldSelect('Unidad','crudTripUnit',t.unidad || 'Sprinter 18',['Sprinter 18','Van 15','SUV 6','Autobús 40']) +
+          fieldSelect('Destino','crudTripDestination',t.destino || 'McAllen',['McAllen','Laredo','Brownsville','Eagle Pass']) +
+          fieldSelect('Status','crudTripStatus',t.status || 'Pendiente',['Pendiente','Confirmado','Liquidado','Cancelado']) +
+          fieldInput('Operador','crudTripOperator',t.operador || '') +
+          fieldInput('Punto de salida','crudTripPoint',t.punto_salida || '') +
+          fieldInput('Precio por persona','crudTripPrice',t.precio_persona || 0,'number','min="0" step="1"') +
+          fieldInput('Anticipo total','crudTripAdvance',t.anticipo_total || 0,'number','min="0" step="1"')
+      });
+    }
+
+    async function handleCrudSave(e){
+      e.preventDefault();
+      if(!crudState.type || !crudState.id) return;
+      if(crudState.type === 'passenger'){
+        const nombre = document.getElementById('crudPassengerName').value.trim();
+        const telefono = document.getElementById('crudPassengerPhone').value.trim();
+        const tipo = document.getElementById('crudPassengerType').value;
+        const visa_expiry = document.getElementById('crudPassengerVisa').value || null;
+        const last_trip = document.getElementById('crudPassengerLastTrip').value || null;
+        if(!nombre || !telefono) return alert('Nombre y teléfono son obligatorios.');
+        const { error } = await sb.from('pasajeros').update({ nombre, telefono, tipo, visa_expiry, last_trip }).eq('id', crudState.id);
+        if(error) return alert('Error actualizando pasajero: ' + error.message);
+      } else if(crudState.type === 'document'){
+        const visa_expiry = document.getElementById('crudDocumentVisa').value || null;
+        const { error } = await sb.from('pasajeros').update({ visa_expiry }).eq('id', crudState.id);
+        if(error) return alert('Error actualizando documento: ' + error.message);
+      } else if(crudState.type === 'trip'){
+        const cliente = document.getElementById('crudTripClient').value.trim();
+        const fecha_salida = document.getElementById('crudTripDate').value || null;
+        const hora_salida = document.getElementById('crudTripTime').value || null;
+        const unidad = document.getElementById('crudTripUnit').value;
+        const destino = document.getElementById('crudTripDestination').value;
+        const status = document.getElementById('crudTripStatus').value;
+        const operador = document.getElementById('crudTripOperator').value.trim() || null;
+        const punto_salida = document.getElementById('crudTripPoint').value.trim() || null;
+        const precio_persona = Number(document.getElementById('crudTripPrice').value || 0);
+        const anticipo_total = Number(document.getElementById('crudTripAdvance').value || 0);
+        const pax = travelLinks.filter(x => x.viaje_id === crudState.id).length;
+        const total = pax * precio_persona;
+        const saldo = total - anticipo_total;
+        const { error } = await sb.from('viajes').update({ cliente, fecha_salida, hora_salida, unidad, destino, status, operador, punto_salida, precio_persona, anticipo_total, total, saldo }).eq('id', crudState.id);
+        if(error) return alert('Error actualizando viaje: ' + error.message);
+      }
+      closeCrudModal();
+      await refreshAll();
+      alert('Cambios guardados correctamente.');
+    }
+
+    async function handleCrudDelete(){
+      if(!crudState.type || !crudState.id) return;
+      if(!confirm('¿Seguro que deseas eliminar este registro? Esta acción no se puede deshacer.')) return;
+      if(crudState.type === 'passenger'){
+        await sb.from('viaje_pasajeros').delete().eq('pasajero_id', crudState.id);
+        const { error } = await sb.from('pasajeros').delete().eq('id', crudState.id);
+        if(error) return alert('Error eliminando pasajero: ' + error.message);
+      } else if(crudState.type === 'document'){
+        const { error } = await sb.from('pasajeros').update({ visa_expiry: null }).eq('id', crudState.id);
+        if(error) return alert('Error eliminando documento: ' + error.message);
+      } else if(crudState.type === 'trip'){
+        await sb.from('viaje_pasajeros').delete().eq('viaje_id', crudState.id);
+        const { error } = await sb.from('viajes').delete().eq('id', crudState.id);
+        if(error) return alert('Error eliminando viaje: ' + error.message);
+      }
+      closeCrudModal();
+      await refreshAll();
+      alert(crudState.type === 'document' ? 'Documento eliminado correctamente.' : 'Registro eliminado correctamente.');
+    }
+
+    document.getElementById('crudModalClose').addEventListener('click', closeCrudModal);
+    document.getElementById('crudCancelBtn').addEventListener('click', closeCrudModal);
+    crudForm.addEventListener('submit', handleCrudSave);
+    crudDeleteBtn.addEventListener('click', handleCrudDelete);
+    crudModal.addEventListener('click', (e)=>{ if(e.target === crudModal) closeCrudModal(); });
+
+    function addExistingPassenger(){
+      const id = document.getElementById('existingPassengerSelect').value; if(!id) return;
+      const found = passengers.find(p => p.id === id); if(!found) return;
+      if(selectedPassengers.some(p => p.id === found.id)) return alert('Ese pasajero ya está agregado al viaje.');
+      const validation = passengerCanTravelUSA(found);
+      if(!validation.ok) return alert(validation.message);
+      selectedPassengers.push(found); renderSelectedPassengers(); document.getElementById('existingPassengerSelect').value = '';
+    }
+
+    async function addNewPassenger(){
+      const nombre = document.getElementById('newPassengerName').value.trim();
+      const telefono = document.getElementById('newPassengerPhone').value.trim();
+      const visa_expiry = document.getElementById('newPassengerVisaExpiry').value || null;
+      const tipo = document.getElementById('newPassengerType').value;
+      if(!nombre || !telefono) return alert('Completa nombre y teléfono.');
+      const { data, error } = await sb.from('pasajeros').insert([{ nombre, telefono, visa_expiry, tipo }]).select().single();
+      if(error) return alert('Error guardando pasajero: ' + error.message);
+      passengers.unshift(data);
+      const validation = passengerCanTravelUSA(data);
+      if(!validation.ok){ alert(validation.message + ' Se guardó el pasajero, pero no se agregó al viaje.'); }
+      else { selectedPassengers.push(data); }
+      document.getElementById('newPassengerName').value=''; document.getElementById('newPassengerPhone').value=''; document.getElementById('newPassengerVisaExpiry').value='';
+      fillExistingPassengerSelect(); fillPassengersTable(); fillDocumentsTable(); fillVisaAlerts(); fillKpiSummary(); renderSelectedPassengers();
+      alert('Pasajero guardado correctamente.');
+    }
+
+    async function saveTrip(){
+      const fecha_salida = document.getElementById('tripDate').value;
+      const unidad = document.getElementById('tripUnit').value;
+      const cliente = document.getElementById('tripClient').value.trim();
+      const destino = document.getElementById('tripDestination').value;
+      const operador = document.getElementById('tripOperator').value.trim() || null;
+      const hora_salida = document.getElementById('tripTime').value || null;
+      const punto_salida = document.getElementById('tripPoint').value.trim() || null;
+      const precio_persona = Number(document.getElementById('tripPrice').value || 0);
+      const anticipo_total = Number(document.getElementById('tripAdvance').value || 0);
+      if(!fecha_salida || !cliente || !selectedPassengers.length) return alert('Captura fecha, cliente y agrega al menos un pasajero.');
+      const blocked = selectedPassengers.find(p => !passengerCanTravelUSA(p).ok);
+      if(blocked) return alert(passengerCanTravelUSA(blocked).message);
+      const total = selectedPassengers.length * precio_persona;
+      const saldo = total - anticipo_total;
+      const status = saldo <= 0 ? 'Liquidado' : 'Pendiente';
+      const folio = `TR-${Date.now().toString().slice(-6)}`;
+      const { data: trip, error: tripError } = await sb.from('viajes').insert([{ folio, fecha_salida, unidad, cliente, destino, precio_persona, anticipo_total, total, saldo, status, operador, punto_salida, hora_salida }]).select().single();
+      if(tripError) return alert('Error guardando viaje: ' + tripError.message);
+      const links = selectedPassengers.map((p, idx) => ({ viaje_id: trip.id, pasajero_id: p.id, abordaje_status: 'pendiente', pago_status: anticipo_total > 0 ? 'Anticipo' : 'Pendiente', asiento: `A${idx+1}` }));
+      const { error: linkError } = await sb.from('viaje_pasajeros').insert(links);
+      if(linkError) return alert('Viaje creado, pero falló la asignación de pasajeros: ' + linkError.message);
+      await Promise.all(selectedPassengers.map(p => sb.from('pasajeros').update({ last_trip: fecha_salida, tipo: 'Recurrente' }).eq('id', p.id)));
+      selectedPassengers = [];
+      document.getElementById('tripClient').value=''; document.getElementById('tripAdvance').value=1000; document.getElementById('tripPrice').value=850; document.getElementById('tripOperator').value=''; document.getElementById('tripTime').value='06:30'; document.getElementById('tripPoint').value='';
+      setDefaultDate();
+      await refreshAll();
+      activateSection('historial');
+      alert('Viaje guardado correctamente en Supabase.');
+    }
+
+    async function runLocator(){
+      const term = (document.getElementById('locatorInput').value || '').trim().toLowerCase();
+      const results = passengers.filter(p => !term || p.nombre.toLowerCase().includes(term) || p.telefono.includes(term));
+      const container = document.getElementById('locatorResults');
+      if(!results.length){ container.innerHTML = '<div class="empty">Sin resultados.</div>'; return; }
+      container.innerHTML = results.map(p => {
+        const latestLink = travelLinks.find(x => x.pasajero_id === p.id);
+        const trip = latestLink ? trips.find(t => t.id === latestLink.viaje_id) : null;
+        const visa = getVisaStatus(p.visa_expiry);
+        return `<div class="search-result"><strong>${p.nombre}</strong><div class="muted">${p.telefono} · ${p.tipo}</div><div class="passenger-tags"><span class="tag ${visa.class}">Visa: ${visa.label}</span>${trip ? `<span class="tag tag-blue">Viaje: ${trip.folio}</span><span class="tag tag-blue">Unidad: ${trip.unidad}</span><span class="tag tag-blue">Destino: ${trip.destino}</span>` : '<span class="tag tag-yellow">Sin viaje asignado</span>'}</div><div class="helper" style="margin-top:10px;">${trip ? `Fecha: ${trip.fecha_salida} · Estado operador: ${latestLink.abordaje_status}` : 'No tiene asignación reciente.'}</div></div>`;
+      }).join('');
+    }
+
+    async function seedDemoData(){
+      const { count } = await sb.from('pasajeros').select('*', { count: 'exact', head: true });
+      if((count || 0) > 0){ alert('Ya hay datos cargados en Supabase.'); return; }
+      const demoPassengers = [
+        { nombre:'Juan Pérez', telefono:'8112345678', tipo:'Recurrente', visa_expiry:'2026-05-15', last_trip:'2026-03-20' },
+        { nombre:'María González', telefono:'8123456789', tipo:'Recurrente', visa_expiry:'2026-04-08', last_trip:'2026-03-18' },
+        { nombre:'Carlos Ramírez', telefono:'8134567890', tipo:'Nuevo', visa_expiry:'2026-03-31' },
+        { nombre:'Ana Torres', telefono:'8145678901', tipo:'Recurrente', visa_expiry:'2026-06-22', last_trip:'2026-03-14' },
+        { nombre:'Luis Herrera', telefono:'8156789012', tipo:'Recurrente', visa_expiry:'2026-04-03', last_trip:'2026-03-10' }
+      ];
+      const { data: seededPassengers, error: pErr } = await sb.from('pasajeros').insert(demoPassengers).select();
+      if(pErr) return alert('Error cargando demo pasajeros: ' + pErr.message);
+      const tripPayload = { folio:'TR-2180', fecha_salida:new Date().toISOString().slice(0,10), unidad:'Sprinter 18', cliente:'María González', destino:'McAllen', precio_persona:850, anticipo_total:2000, total:4250, saldo:2250, status:'Pendiente', operador:'José Martínez', punto_salida:'Monterrey Centro', hora_salida:'06:30' };
+      const { data: trip, error: tErr } = await sb.from('viajes').insert([tripPayload]).select().single();
+      if(tErr) return alert('Pasajeros demo cargados, pero el viaje falló: ' + tErr.message);
+      const links = seededPassengers.slice(0,4).map((p, i) => ({ viaje_id: trip.id, pasajero_id: p.id, abordaje_status: i===1 ? 'abordo' : 'pendiente', pago_status: i<2 ? 'Completo' : 'Anticipo', asiento:`A${i+1}` }));
+      const { error: lErr } = await sb.from('viaje_pasajeros').insert(links);
+      if(lErr) return alert('Viaje demo cargado, pero falló relación de pasajeros: ' + lErr.message);
+      await refreshAll();
+      alert('Datos demo iniciales cargados.');
+    }
+
+    function setDefaultDate(){ document.getElementById('tripDate').value = new Date().toISOString().split('T')[0]; document.getElementById('tripTime').value = document.getElementById('tripTime').value || '06:30'; }
+    function removeSelectedPassenger(index){ selectedPassengers.splice(index,1); renderSelectedPassengers(); }
+    window.removeSelectedPassenger = removeSelectedPassenger;
+    window.openPassengerModal = openPassengerModal;
+    window.openDocumentModal = openDocumentModal;
+    window.openTripModal = openTripModal;
+
+    setDefaultDate();
+    updateTripSummary();
+    refreshAll();
+  </script>
+</body>
+</html>
