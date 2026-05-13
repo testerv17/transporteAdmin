@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modo Operador Premium | Transporte Fronterizo Lite</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root{
+      --bg:#07111c;
+      --bg2:#0b1728;
+      --panel:#0f1d31;
+      --panel-2:#14243d;
+      --panel-3:#1a2d4b;
+      --line:#28405f;
+      --text:#eef5ff;
+      --muted:#9fb5d8;
+      --primary:#45a2ff;
+      --primary-2:#1a6de6;
+      --success:#1eb871;
+      --warning:#f0b100;
+      --danger:#ef4444;
+      --info:#79d4ff;
+      --shadow:0 18px 40px rgba(0,0,0,.28);
+      --radius:22px;
+      --radius-sm:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;padding:0;
+      font-family:Inter,Arial,Helvetica,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(69,162,255,.12), transparent 24%),
+        radial-gradient(circle at top left, rgba(121,212,255,.08), transparent 18%),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+      min-height:100%;
+    }
+    body.modal-open{overflow:hidden}
+    .app{max-width:1480px;margin:0 auto;padding:18px}
+    .topbar{
+      display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+    .brand{display:flex;align-items:center;gap:14px}
+    .logo{
+      width:50px;height:50px;border-radius:16px;
+      background:linear-gradient(135deg,var(--primary),#6bd8ff);
+      box-shadow:0 14px 32px rgba(26,109,230,.28);
+      flex:0 0 50px;
+    }
+    .brand h1{margin:0;font-size:24px;font-weight:800;letter-spacing:.2px}
+    .brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      border:none;border-radius:14px;padding:12px 16px;cursor:pointer;
+      font-weight:800;color:#fff;transition:.2s ease;font-size:14px;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-2))}
+    .btn-dark{background:rgba(18,35,58,.98);border:1px solid var(--line)}
+    .btn-success{background:linear-gradient(135deg,#1eb871,#15965b)}
+    .btn-warning{background:linear-gradient(135deg,#f0b100,#d29100)}
+    .btn-danger{background:linear-gradient(135deg,#ef4444,#cb2f2f)}
+    .btn-soft{background:rgba(69,162,255,.12);border:1px solid rgba(69,162,255,.22);color:#cbe4ff}
+    .layout{display:grid;grid-template-columns:420px 1fr;gap:18px}
+    .left-stack,.right-stack{display:grid;gap:18px}
+    .card{
+      background:linear-gradient(180deg,rgba(15,29,49,.94),rgba(9,18,31,.96));
+      border:1px solid var(--line);border-radius:var(--radius);
+      box-shadow:var(--shadow);overflow:hidden;
+    }
+    .card-body{padding:18px}
+    .section-title{margin:0 0 14px;font-size:16px;font-weight:800}
+    .trip-hero{
+      padding:20px;
+      background:
+        radial-gradient(circle at 85% 20%, rgba(69,162,255,.20), transparent 30%),
+        linear-gradient(180deg, rgba(20,36,61,.98), rgba(12,22,38,.98));
+      border-bottom:1px solid var(--line);
+    }
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:8px;
+      background:rgba(69,162,255,.10);border:1px solid rgba(69,162,255,.22);
+      color:#b9dcff;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:800;
+      margin-bottom:12px;
+    }
+    .trip-hero h2{margin:0;font-size:26px;font-weight:900}
+    .trip-hero p{margin:8px 0 0;color:var(--muted);font-size:14px}
+    .trip-selector{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:16px}
+    .field{display:flex;flex-direction:column;gap:8px}
+    .field label{font-size:12px;font-weight:800;color:#d9e7ff}
+    .input,.select{
+      width:100%;background:rgba(8,20,37,.96);border:1px solid #314764;color:#fff;
+      border-radius:16px;padding:13px 14px;font-size:14px;outline:none;
+    }
+    .input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(69,162,255,.12)}
+    .meta-grid{
+      display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px;
+    }
+    .meta-box,.mini-stat{
+      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+      border-radius:18px;padding:14px;
+    }
+    .meta-label,.mini-label{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .meta-value{font-size:15px;font-weight:800}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .kpi{
+      background:linear-gradient(180deg,rgba(20,36,61,.92),rgba(11,21,36,.98));
+      border:1px solid var(--line);border-radius:18px;padding:16px;
+    }
+    .kpi .label{font-size:12px;color:var(--muted);margin-bottom:7px}
+    .kpi .value{font-size:28px;font-weight:900}
+    .toolbar{
+      display:grid;grid-template-columns:1fr 190px;gap:10px;
+    }
+    .toolbar-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .chip{
+      border:1px solid var(--line);background:#102036;color:#dce9ff;padding:10px 12px;
+      border-radius:999px;cursor:pointer;font-size:13px;font-weight:800;
+    }
+    .chip.active{background:rgba(69,162,255,.15);border-color:rgba(69,162,255,.35);color:#9fd0ff}
+    .segment{
+      display:flex;gap:8px;flex-wrap:wrap;
+    }
+    .segment button{
+      flex:1;min-width:110px;border:1px solid var(--line);background:#102036;color:#dce9ff;
+      padding:10px 12px;border-radius:14px;cursor:pointer;font-size:13px;font-weight:800;
+    }
+    .segment button.active{
+      background:rgba(69,162,255,.16);
+      border-color:rgba(69,162,255,.35);
+      color:#b9dcff;
+    }
+    .list{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .passenger{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(18,35,59,.88), rgba(11,22,39,.98));
+      border-radius:20px;overflow:hidden;
+      display:flex;flex-direction:column;min-height:100%;
+    }
+    .passenger-top{padding:16px 16px 12px}
+    .passenger-header{
+      display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;
+    }
+    .passenger-name{font-size:18px;font-weight:900;margin-bottom:6px}
+    .passenger-sub{color:var(--muted);font-size:13px;line-height:1.45}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .badge{
+      padding:7px 10px;border-radius:999px;font-size:12px;font-weight:900;border:1px solid transparent;
+      display:inline-flex;align-items:center;gap:6px;
+    }
+    .badge-blue{background:rgba(69,162,255,.12);color:#9fd0ff;border-color:rgba(69,162,255,.25)}
+    .badge-green{background:rgba(30,184,113,.12);color:#9ef0c4;border-color:rgba(30,184,113,.25)}
+    .badge-yellow{background:rgba(240,177,0,.12);color:#ffd86a;border-color:rgba(240,177,0,.25)}
+    .badge-red{background:rgba(239,68,68,.12);color:#ffadad;border-color:rgba(239,68,68,.25)}
+    .badge-gray{background:rgba(255,255,255,.06);color:#dbe8ff;border-color:rgba(255,255,255,.08)}
+    .passenger-flags{margin-top:12px;display:grid;gap:8px}
+    .flag{
+      padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);
+      font-size:12px;font-weight:700;background:rgba(255,255,255,.03);color:#dbe8ff;
+    }
+    .flag.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.22);color:#ffb3b3}
+    .flag.warning{background:rgba(240,177,0,.12);border-color:rgba(240,177,0,.22);color:#ffe091}
+    .passenger-actions{
+      padding:0 16px 16px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:auto;
+    }
+    .action-btn{
+      border:none;border-radius:14px;padding:12px 10px;color:#fff;cursor:pointer;font-weight:900;
+      font-size:13px;transition:.2s ease;
+    }
+    .action-btn:hover{transform:translateY(-1px)}
+    .action-boarded{background:linear-gradient(135deg,#1ab86e,#14975a)}
+    .action-pending{background:linear-gradient(135deg,#f0b100,#d39200)}
+    .action-review{background:linear-gradient(135deg,#2f9fff,#1a72e4)}
+    .action-noshow{background:linear-gradient(135deg,#ef4444,#cf2f2f)}
+    .action-detail{background:linear-gradient(135deg,#1a3356,#132540);border:1px solid var(--line)}
+    .disabled{
+      opacity:.55;pointer-events:none;filter:grayscale(.15)
+    }
+    .timeline{display:flex;flex-direction:column;gap:12px}
+    .event{
+      display:flex;gap:12px;align-items:flex-start;padding:12px 0;
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .event:last-child{border-bottom:none}
+    .event-dot{width:12px;height:12px;border-radius:50%;margin-top:6px;flex:0 0 12px}
+    .event strong{display:block;margin-bottom:5px}
+    .event p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+    .summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .summary-box{
+      background:rgba(8,20,37,.92);border:1px solid var(--line);border-radius:18px;padding:14px;
+    }
+    .summary-box .small{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .summary-box .big{font-size:23px;font-weight:900}
+    .bottom-bar{
+      position:sticky;bottom:0;z-index:20;margin-top:18px;
+      backdrop-filter:blur(14px);
+      background:rgba(7,17,28,.72);
+      border:1px solid rgba(40,64,95,.6);
+      border-radius:22px;
+      padding:12px;
+      display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;
+      box-shadow:var(--shadow);
+    }
+    .bottom-bar .hint{color:var(--muted);font-size:13px}
+    .empty{
+      padding:30px 18px;text-align:center;color:var(--muted);
+      border:1px dashed #335076;border-radius:18px;background:rgba(8,20,37,.45)
+    }
+
+    #qrReader{width:100%;min-height:280px;background:#07111c;border:1px dashed var(--line);border-radius:18px;overflow:hidden}
+    .scan-result{padding:12px 14px;border-radius:16px;background:rgba(69,162,255,.08);border:1px solid rgba(69,162,255,.22);color:#dcecff;margin-top:12px;font-size:13px}
+    .modal{
+      position:fixed;inset:0;background:rgba(3,10,18,.72);backdrop-filter:blur(6px);
+      display:none;align-items:center;justify-content:center;padding:16px;z-index:3000;
+    }
+    .modal.open{display:flex}
+    .modal-card{
+      width:min(680px,100%);
+      max-height:min(90vh,900px);
+      overflow:auto;
+      border-radius:24px;
+      background:linear-gradient(180deg,rgba(16,31,52,.98),rgba(10,20,34,.99));
+      border:1px solid var(--line);
+      box-shadow:0 22px 60px rgba(0,0,0,.42);
+    }
+    .modal-head{
+      display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
+      padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,.06);
+      position:sticky;top:0;background:inherit;z-index:1;
+    }
+    .modal-head h3{margin:0;font-size:22px}
+    .modal-head p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .icon-btn{
+      width:42px;height:42px;border-radius:14px;background:#12233a;border:1px solid var(--line);
+      color:#fff;cursor:pointer;font-size:18px;
+    }
+    .modal-body{padding:18px;display:grid;gap:16px}
+    .modal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .highlight{
+      background:rgba(69,162,255,.08);border:1px solid rgba(69,162,255,.18);border-radius:18px;padding:14px;
+    }
+    .notice{
+      padding:12px 14px;border-radius:16px;font-size:13px;font-weight:700;border:1px solid transparent;
+    }
+    .notice.warning{background:rgba(240,177,0,.12);border-color:rgba(240,177,0,.22);color:#ffe091}
+    .notice.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.22);color:#ffb6b6}
+    .loading{
+      display:flex;align-items:center;justify-content:center;padding:26px;color:var(--muted);font-weight:700;
+    }
+    .spinner{
+      width:16px;height:16px;border:2px solid rgba(255,255,255,.12);border-top-color:var(--primary);
+      border-radius:50%;display:inline-block;margin-right:10px;animation:spin 1s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    @media (max-width: 1240px){
+      .layout{grid-template-columns:1fr}
+      .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width: 900px){
+      .list{grid-template-columns:1fr}
+    }
+    @media (max-width: 760px){
+      .app{padding:12px}
+      .topbar{align-items:flex-start}
+      .brand h1{font-size:20px}
+      .trip-hero h2{font-size:22px}
+      .trip-selector{grid-template-columns:1fr}
+      .meta-grid,.summary-grid,.modal-grid,.kpi-grid{grid-template-columns:1fr 1fr}
+      .toolbar{grid-template-columns:1fr}
+      .bottom-bar{padding:10px}
+    }
+    @media (max-width: 520px){
+      .meta-grid,.summary-grid,.modal-grid,.kpi-grid,.passenger-actions{grid-template-columns:1fr}
+      .btn,.action-btn{min-height:46px}
+      .modal-head h3{font-size:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>Modo Operador Premium</h1>
+          <p>Recepción, abordaje y control visual avanzado para smartphone y escritorio</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-dark" id="btnRefresh">Actualizar</button>
+        <button class="btn btn-primary" id="btnOpenScanner">Escanear QR</button>
+        <button class="btn btn-primary" id="btnCompleteTrip">Cerrar recepción</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="left-stack">
+        <section class="card">
+          <div class="trip-hero">
+            <div class="eyebrow">Operación en campo · Lite v1</div>
+            <h2 id="tripTitle">Selecciona un viaje</h2>
+            <p id="tripSubtitle">Cargando salidas disponibles desde Supabase.</p>
+
+            <div class="trip-selector">
+              <div class="field">
+                <label for="tripSelect">Viaje asignado</label>
+                <select id="tripSelect" class="select"></select>
+              </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary" id="btnLoadTrip">Cargar viaje</button>
+              </div>
+            </div>
+
+            <div class="meta-grid">
+              <div class="meta-box"><div class="meta-label">Fecha / Hora salida</div><div class="meta-value" id="metaDate">—</div></div>
+              <div class="meta-box"><div class="meta-label">Unidad</div><div class="meta-value" id="metaUnit">—</div></div>
+              <div class="meta-box"><div class="meta-label">Punto de salida</div><div class="meta-value" id="metaPoint">—</div></div>
+              <div class="meta-box"><div class="meta-label">Operador</div><div class="meta-value" id="metaOperator">—</div></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <h3 class="section-title">Estado del viaje</h3>
+            <div class="kpi-grid" id="kpiGrid"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-body">
+            <h3 class="section-title">Buscar y filtrar pasajeros</h3>
+            <div class="toolbar">
+              <input id="searchInput" class="input" placeholder="Buscar por nombre, teléfono, asiento o nota..." />
+              <select id="sortSelect" class="select">
+                <option value="nombre">Ordenar: Nombre</option>
+                <option value="status">Ordenar: Estatus</option>
+                <option value="visa">Ordenar: Visa</option>
+                <option value="pago">Ordenar: Pago</option>
+              </select>
+            </div>
+            <div class="chips" id="filterChips">
+              <button class="chip active" data-filter="all">Todos</button>
+              <button class="chip" data-filter="pendiente">Pendientes</button>
+              <button class="chip" data-filter="abordo">Abordó</button>
+              <button class="chip" data-filter="revision">Revisión</button>
+              <button class="chip" data-filter="noshow">No llegó</button>
+              <button class="chip" data-filter="bloqueados">Bloqueados EUA</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-body">
+            <div class="segment" id="viewMode">
+              <button class="active" data-view="cards">Vista tarjetas</button>
+              <button data-view="compact">Vista compacta</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="right-stack">
+        <section class="card">
+          <div class="card-body">
+            <h3 class="section-title">Lista operativa de pasajeros</h3>
+            <div id="passengerList" class="list"><div class="loading"><span class="spinner"></span>Cargando pasajeros...</div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-body">
+            <h3 class="section-title">Resumen de salida</h3>
+            <div class="summary-grid" id="summaryGrid"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-body">
+            <h3 class="section-title">Incidencias y alertas</h3>
+            <div class="timeline" id="alertsTimeline"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-body">
+            <h3 class="section-title">Bitácora rápida</h3>
+            <div class="timeline" id="activityTimeline"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="hint" id="bottomHint">Selecciona un viaje para comenzar la recepción.</div>
+      <div class="top-actions">
+        <button class="btn btn-dark" id="btnClearLog">Limpiar bitácora</button>
+        <button class="btn btn-primary" id="btnCompleteTripBottom">Cerrar recepción</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="passengerModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h3 id="modalTitle">Detalle de pasajero</h3>
+          <p id="modalSubtitle">Consulta rápida para operador</p>
+        </div>
+        <button class="icon-btn" id="btnCloseModal">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+
+
+  <div class="modal" id="scannerModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h3>Escanear QR de pasajero</h3>
+          <p>Apunta la cámara al QR generado desde la nota digital.</p>
+        </div>
+        <button class="icon-btn" id="btnCloseScanner">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="qrReader"></div>
+        <div class="scan-result" id="scanResult">Esperando lectura...</div>
+        <div class="modal-grid">
+          <button class="btn btn-primary" id="btnStartScanner">Iniciar cámara</button>
+          <button class="btn btn-dark" id="btnStopScanner">Detener cámara</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://qxdnbkflhxwtlgfukfow.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_UY9HQKWdAiSbPKqKrUySOw_BQQ1rH-W";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let trips = [];
+    let currentTrip = null;
+    let passengerRows = [];
+    let currentFilter = "all";
+    let currentView = "cards";
+    let activityLog = [];
+    let modalRecord = null;
+    let html5QrCode = null;
+    let scannerRunning = false;
+
+    const tripSelect = document.getElementById("tripSelect");
+    const passengerList = document.getElementById("passengerList");
+    const kpiGrid = document.getElementById("kpiGrid");
+    const summaryGrid = document.getElementById("summaryGrid");
+    const alertsTimeline = document.getElementById("alertsTimeline");
+    const activityTimeline = document.getElementById("activityTimeline");
+    const searchInput = document.getElementById("searchInput");
+    const sortSelect = document.getElementById("sortSelect");
+    const bottomHint = document.getElementById("bottomHint");
+    const modal = document.getElementById("passengerModal");
+    const modalBody = document.getElementById("modalBody");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSubtitle = document.getElementById("modalSubtitle");
+
+    function money(value){
+      return new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(Number(value || 0));
+    }
+
+    function formatDate(dateStr){
+      if(!dateStr) return "—";
+      const d = new Date(dateStr + "T00:00:00");
+      return d.toLocaleDateString("es-MX",{year:"numeric",month:"2-digit",day:"2-digit"});
+    }
+
+    function daysUntil(dateStr){
+      if(!dateStr) return null;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const target = new Date(dateStr + "T00:00:00");
+      return Math.ceil((target - today) / (1000*60*60*24));
+    }
+
+    function destinationRequiresVisa(destino){
+      const d = (destino || "").toLowerCase();
+      return ["mcallen","laredo","brownsville","eagle pass","houston","san antonio","usa","texas"].some(x => d.includes(x));
+    }
+
+    function visaStatus(dateStr){
+      const days = daysUntil(dateStr);
+      if(days === null) return {label:"Sin captura", cls:"badge-gray", type:"missing"};
+      if(days < 0) return {label:"Vencida", cls:"badge-red", type:"expired"};
+      if(days <= 7) return {label:"Urgente", cls:"badge-red", type:"urgent"};
+      if(days <= 30) return {label:"Próxima", cls:"badge-yellow", type:"soon"};
+      return {label:"Vigente", cls:"badge-green", type:"valid"};
+    }
+
+    function paymentBadge(pago){
+      if(pago === "Completo") return `<span class="badge badge-green">Pago completo</span>`;
+      if(pago === "Anticipo") return `<span class="badge badge-yellow">Anticipo</span>`;
+      return `<span class="badge badge-red">Pago pendiente</span>`;
+    }
+
+    function statusBadge(status){
+      if(status === "abordo") return `<span class="badge badge-green">Abordó</span>`;
+      if(status === "revision") return `<span class="badge badge-blue">Revisión</span>`;
+      if(status === "noshow") return `<span class="badge badge-red">No llegó</span>`;
+      return `<span class="badge badge-gray">Pendiente</span>`;
+    }
+
+    function blockInfo(record){
+      const requiresVisa = destinationRequiresVisa(currentTrip?.destino);
+      const visa = visaStatus(record.pasajero?.visa_expiry);
+      if(!requiresVisa) return {blocked:false, reason:""};
+      if(visa.type === "missing") return {blocked:true, reason:"No tiene visa capturada para viaje a EUA."};
+      if(visa.type === "expired") return {blocked:true, reason:"La visa está vencida; no puede abordar a Estados Unidos."};
+      return {blocked:false, reason: visa.type === "urgent" ? "Visa por vencer muy pronto. Revisar físicamente." : ""};
+    }
+
+    function dotColor(type){
+      if(type === "success") return "#1eb871";
+      if(type === "warning") return "#f0b100";
+      if(type === "danger") return "#ef4444";
+      return "#45a2ff";
+    }
+
+    async function loadTrips(){
+      const {data, error} = await supabaseClient
+        .from("viajes")
+        .select("id, folio, fecha_salida, hora_salida, destino, unidad, operador, punto_salida, status")
+        .order("fecha_salida", {ascending:false});
+
+      if(error){
+        alert("Error cargando viajes: " + error.message);
+        return;
+      }
+      trips = data || [];
+      tripSelect.innerHTML = trips.length
+        ? trips.map(t => `<option value="${t.id}">${t.folio} · ${formatDate(t.fecha_salida)} · ${t.destino} · ${t.unidad}</option>`).join("")
+        : `<option value="">No hay viajes disponibles</option>`;
+
+      if(trips.length){
+        tripSelect.value = trips[0].id;
+        await loadTrip(trips[0].id);
+      }else{
+        setEmptyState();
+      }
+    }
+
+    function setEmptyState(){
+      currentTrip = null;
+      passengerRows = [];
+      document.getElementById("tripTitle").textContent = "Selecciona un viaje";
+      document.getElementById("tripSubtitle").textContent = "No hay salidas disponibles todavía.";
+      ["metaDate","metaUnit","metaPoint","metaOperator"].forEach(id => document.getElementById(id).textContent = "—");
+      passengerList.innerHTML = `<div class="empty">Aún no hay pasajeros para mostrar.</div>`;
+      kpiGrid.innerHTML = "";
+      summaryGrid.innerHTML = "";
+      alertsTimeline.innerHTML = `<div class="empty">No hay alertas.</div>`;
+      activityTimeline.innerHTML = `<div class="empty">No hay bitácora disponible.</div>`;
+      bottomHint.textContent = "Selecciona un viaje para comenzar la recepción.";
+    }
+
+    async function loadTrip(tripId){
+      if(!tripId) return;
+      const trip = trips.find(t => t.id === tripId);
+      currentTrip = trip || null;
+
+      document.getElementById("tripTitle").textContent = trip ? `Viaje ${trip.folio} · ${trip.destino}` : "Viaje";
+      document.getElementById("tripSubtitle").textContent = trip ? "Control operativo en tiempo real con validación de abordaje." : "";
+      document.getElementById("metaDate").textContent = trip ? `${formatDate(trip.fecha_salida)} ${trip.hora_salida || ""}`.trim() : "—";
+      document.getElementById("metaUnit").textContent = trip?.unidad || "—";
+      document.getElementById("metaPoint").textContent = trip?.punto_salida || "—";
+      document.getElementById("metaOperator").textContent = trip?.operador || "—";
+
+      passengerList.innerHTML = `<div class="loading"><span class="spinner"></span>Cargando pasajeros del viaje...</div>`;
+
+      const {data, error} = await supabaseClient
+        .from("viaje_pasajeros")
+        .select(`
+          id, abordaje_status, pago_status, asiento, nota, created_at,
+          pasajero:pasajeros(id, nombre, telefono, tipo, visa_expiry, last_trip)
+        `)
+        .eq("viaje_id", tripId)
+        .order("created_at", {ascending:true});
+
+      if(error){
+        passengerList.innerHTML = `<div class="empty">Error al cargar pasajeros: ${error.message}</div>`;
+        return;
+      }
+
+      passengerRows = data || [];
+      activityLog = [{
+        type:"info",
+        title:`Recepción abierta: ${trip.folio}`,
+        text:`Operación cargada para ${trip.destino} · ${trip.unidad}.`
+      }];
+
+      bottomHint.textContent = `Viaje activo: ${trip.folio} · ${trip.destino}. ${destinationRequiresVisa(trip.destino) ? "Validación de visa EUA activa." : "Sin restricción EUA."}`;
+      renderAll();
+    }
+
+    function filteredRows(){
+      const term = searchInput.value.trim().toLowerCase();
+      const sort = sortSelect.value;
+      let rows = passengerRows.filter(r => {
+        const p = r.pasajero || {};
+        const block = blockInfo(r).blocked;
+        const matchesSearch =
+          (p.nombre || "").toLowerCase().includes(term) ||
+          (p.telefono || "").includes(term) ||
+          (r.asiento || "").toLowerCase().includes(term) ||
+          (r.nota || "").toLowerCase().includes(term);
+
+        const matchesFilter =
+          currentFilter === "all" ? true :
+          currentFilter === "bloqueados" ? block :
+          r.abordaje_status === currentFilter;
+
+        return matchesSearch && matchesFilter;
+      });
+
+      rows.sort((a,b) => {
+        const pa = a.pasajero || {}, pb = b.pasajero || {};
+        if(sort === "status") return (a.abordaje_status || "").localeCompare(b.abordaje_status || "");
+        if(sort === "pago") return (a.pago_status || "").localeCompare(b.pago_status || "");
+        if(sort === "visa") return (daysUntil(pa.visa_expiry) ?? 99999) - (daysUntil(pb.visa_expiry) ?? 99999);
+        return (pa.nombre || "").localeCompare(pb.nombre || "");
+      });
+
+      return rows;
+    }
+
+    function renderKpis(){
+      const total = passengerRows.length;
+      const abordo = passengerRows.filter(r => r.abordaje_status === "abordo").length;
+      const pendientes = passengerRows.filter(r => r.abordaje_status === "pendiente").length;
+      const revision = passengerRows.filter(r => r.abordaje_status === "revision").length;
+      const blocked = passengerRows.filter(r => blockInfo(r).blocked).length;
+
+      kpiGrid.innerHTML = [
+        ["Reservados", total],
+        ["Abordados", abordo],
+        ["Pendientes", pendientes],
+        ["Bloqueados EUA", blocked]
+      ].map(([label,value]) => `
+        <div class="kpi">
+          <div class="label">${label}</div>
+          <div class="value">${value}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderSummary(){
+      const abordo = passengerRows.filter(r => r.abordaje_status === "abordo").length;
+      const noShow = passengerRows.filter(r => r.abordaje_status === "noshow").length;
+      const revision = passengerRows.filter(r => r.abordaje_status === "revision").length;
+      const pendientesPago = passengerRows.filter(r => r.pago_status !== "Completo").length;
+      const urgentDocs = passengerRows.filter(r => {
+        const t = visaStatus(r.pasajero?.visa_expiry).type;
+        return t === "expired" || t === "urgent" || t === "soon";
+      }).length;
+      const capacity = currentTrip?.unidad?.match(/\d+/)?.[0] || "—";
+
+      summaryGrid.innerHTML = `
+        <div class="summary-box"><div class="small">Capacidad unidad</div><div class="big">${capacity} lugares</div></div>
+        <div class="summary-box"><div class="small">Ocupación actual</div><div class="big">${abordo}/${capacity}</div></div>
+        <div class="summary-box"><div class="small">No presentados</div><div class="big">${noShow}</div></div>
+        <div class="summary-box"><div class="small">En revisión</div><div class="big">${revision}</div></div>
+        <div class="summary-box"><div class="small">Pendientes de pago</div><div class="big">${pendientesPago}</div></div>
+        <div class="summary-box"><div class="small">Documentos con alerta</div><div class="big">${urgentDocs}</div></div>
+      `;
+    }
+
+    function renderAlerts(){
+      const alerts = [];
+      passengerRows.forEach(r => {
+        const p = r.pasajero || {};
+        const visa = visaStatus(p.visa_expiry);
+        const block = blockInfo(r);
+
+        if(block.blocked){
+          alerts.push({type:"danger", title:`${p.nombre} bloqueado para EUA`, text:block.reason});
+        } else if(visa.type === "urgent" || visa.type === "soon"){
+          alerts.push({type:"warning", title:`${p.nombre} requiere revisión documental`, text:`Visa ${visa.label.toLowerCase()} (${p.visa_expiry || "sin fecha"}).`});
+        }
+
+        if(r.pago_status === "Pendiente"){
+          alerts.push({type:"warning", title:`${p.nombre} con pago pendiente`, text:`Validar con oficina antes del abordaje.`});
+        }
+
+        if(r.abordaje_status === "noshow"){
+          alerts.push({type:"info", title:`${p.nombre} no se presentó`, text:`Su asiento puede quedar disponible si se autoriza reemplazo.`});
+        }
+      });
+
+      if(!alerts.length){
+        alertsTimeline.innerHTML = `<div class="empty">No hay alertas por ahora.</div>`;
+        return;
+      }
+
+      alertsTimeline.innerHTML = alerts.slice(0,10).map(a => `
+        <div class="event">
+          <div class="event-dot" style="background:${dotColor(a.type)};"></div>
+          <div><strong>${a.title}</strong><p>${a.text}</p></div>
+        </div>
+      `).join("");
+    }
+
+    function renderActivity(){
+      if(!activityLog.length){
+        activityTimeline.innerHTML = `<div class="empty">No hay eventos en bitácora.</div>`;
+        return;
+      }
+      activityTimeline.innerHTML = activityLog.slice(0,12).map(item => `
+        <div class="event">
+          <div class="event-dot" style="background:${dotColor(item.type)};"></div>
+          <div><strong>${item.title}</strong><p>${item.text}</p></div>
+        </div>
+      `).join("");
+    }
+
+    function passengerCard(record){
+      const p = record.pasajero || {};
+      const visa = visaStatus(p.visa_expiry);
+      const block = blockInfo(record);
+      const lastTrip = p.last_trip ? formatDate(p.last_trip) : "Sin historial";
+      const detailBtn = `<button class="action-btn action-detail" onclick="openPassengerModal('${record.id}')">Ver ficha</button>`;
+      const boardDisabled = block.blocked ? "disabled" : "";
+
+      return `
+        <article class="passenger">
+          <div class="passenger-top">
+            <div class="passenger-header">
+              <div>
+                <div class="passenger-name">${p.nombre || "Sin nombre"}</div>
+                <div class="passenger-sub">Tel: ${p.telefono || "—"} · ${p.tipo || "—"} · Asiento ${record.asiento || "—"}</div>
+              </div>
+              ${statusBadge(record.abordaje_status)}
+            </div>
+
+            <div class="badges">
+              <span class="badge ${visa.cls}">Visa: ${visa.label}</span>
+              ${paymentBadge(record.pago_status)}
+              <span class="badge badge-blue">Último viaje: ${lastTrip}</span>
+            </div>
+
+            <div class="passenger-flags">
+              ${record.nota ? `<div class="flag">Nota: ${record.nota}</div>` : ""}
+              ${block.blocked ? `<div class="flag danger">Bloqueado: ${block.reason}</div>` : ""}
+              ${!block.blocked && block.reason ? `<div class="flag warning">${block.reason}</div>` : ""}
+            </div>
+          </div>
+
+          <div class="passenger-actions">
+            <button class="action-btn action-boarded ${boardDisabled}" onclick="updatePassengerStatus('${record.id}','abordo')">Marcar abordó</button>
+            <button class="action-btn action-pending" onclick="updatePassengerStatus('${record.id}','pendiente')">Pendiente</button>
+            <button class="action-btn action-review" onclick="updatePassengerStatus('${record.id}','revision')">Revisión</button>
+            <button class="action-btn action-noshow" onclick="updatePassengerStatus('${record.id}','noshow')">No llegó</button>
+            ${detailBtn}
+          </div>
+        </article>
+      `;
+    }
+
+    function passengerCompact(record){
+      const p = record.pasajero || {};
+      const visa = visaStatus(p.visa_expiry);
+      const block = blockInfo(record);
+      return `
+        <article class="passenger" style="border-radius:18px">
+          <div class="passenger-top" style="padding-bottom:10px">
+            <div class="passenger-header">
+              <div>
+                <div class="passenger-name" style="font-size:16px">${p.nombre || "Sin nombre"}</div>
+                <div class="passenger-sub">${p.telefono || "—"} · Asiento ${record.asiento || "—"} · ${record.pago_status}</div>
+              </div>
+              <button class="btn btn-soft" style="padding:10px 12px" onclick="openPassengerModal('${record.id}')">Ficha</button>
+            </div>
+            <div class="badges">
+              ${statusBadge(record.abordaje_status)}
+              <span class="badge ${visa.cls}">${visa.label}</span>
+              ${block.blocked ? `<span class="badge badge-red">Bloqueado</span>` : ``}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderPassengers(){
+      const rows = filteredRows();
+      if(!rows.length){
+        passengerList.innerHTML = `<div class="empty">No se encontraron pasajeros con ese filtro.</div>`;
+        return;
+      }
+      passengerList.innerHTML = rows.map(r => currentView === "cards" ? passengerCard(r) : passengerCompact(r)).join("");
+    }
+
+    function renderAll(){
+      renderKpis();
+      renderSummary();
+      renderAlerts();
+      renderActivity();
+      renderPassengers();
+    }
+
+    async function updatePassengerStatus(id, newStatus){
+      const record = passengerRows.find(r => r.id === id);
+      if(!record) return;
+
+      const p = record.pasajero || {};
+      const block = blockInfo(record);
+      if(newStatus === "abordo" && block.blocked){
+        alert(`No se puede marcar como abordó.\n\n${block.reason}`);
+        activityLog.unshift({type:"danger", title:`Bloqueo de abordaje: ${p.nombre}`, text:block.reason});
+        renderAll();
+        return;
+      }
+
+      const {error} = await supabaseClient
+        .from("viaje_pasajeros")
+        .update({abordaje_status:newStatus})
+        .eq("id", id);
+
+      if(error){
+        alert("Error al actualizar estatus: " + error.message);
+        return;
+      }
+
+      record.abordaje_status = newStatus;
+      let type = "info";
+      let title = `${p.nombre} actualizado`;
+      let text = `Estatus cambiado a ${labelFromStatus(newStatus)}.`;
+
+      if(newStatus === "abordo"){
+        type = "success";
+        title = `${p.nombre} abordó`;
+        text = `Pasajero listo para salida en asiento ${record.asiento || "—"}.`;
+      }else if(newStatus === "revision"){
+        type = "warning";
+        title = `${p.nombre} enviado a revisión`;
+        text = `Validar documento o pago antes del abordaje.`;
+      }else if(newStatus === "noshow"){
+        type = "danger";
+        title = `${p.nombre} no llegó`;
+        text = `Se marca como no presentado en este viaje.`;
+      }
+
+      activityLog.unshift({type, title, text});
+      if(modal.classList.contains("open") && modalRecord?.id === id) openPassengerModal(id, true);
+      renderAll();
+    }
+
+    function labelFromStatus(status){
+      if(status === "abordo") return "Abordó";
+      if(status === "revision") return "Revisión";
+      if(status === "noshow") return "No llegó";
+      return "Pendiente";
+    }
+
+    function openPassengerModal(id, keepOpen = false){
+      const record = passengerRows.find(r => r.id === id);
+      if(!record) return;
+      modalRecord = record;
+
+      const p = record.pasajero || {};
+      const visa = visaStatus(p.visa_expiry);
+      const block = blockInfo(record);
+
+      modalTitle.textContent = p.nombre || "Pasajero";
+      modalSubtitle.textContent = `${currentTrip?.folio || ""} · ${currentTrip?.destino || ""} · Asiento ${record.asiento || "—"}`;
+
+      modalBody.innerHTML = `
+        <div class="highlight">
+          <div class="modal-grid">
+            <div><div class="meta-label">Teléfono</div><div class="meta-value">${p.telefono || "—"}</div></div>
+            <div><div class="meta-label">Tipo cliente</div><div class="meta-value">${p.tipo || "—"}</div></div>
+            <div><div class="meta-label">Visa EUA</div><div class="meta-value">${p.visa_expiry ? formatDate(p.visa_expiry) : "Sin captura"}</div></div>
+            <div><div class="meta-label">Estatus actual</div><div class="meta-value">${labelFromStatus(record.abordaje_status)}</div></div>
+            <div><div class="meta-label">Pago</div><div class="meta-value">${record.pago_status || "—"}</div></div>
+            <div><div class="meta-label">Último viaje</div><div class="meta-value">${p.last_trip ? formatDate(p.last_trip) : "Sin historial"}</div></div>
+          </div>
+        </div>
+
+        <div class="badges">
+          ${statusBadge(record.abordaje_status)}
+          <span class="badge ${visa.cls}">Visa: ${visa.label}</span>
+          ${paymentBadge(record.pago_status)}
+          ${block.blocked ? `<span class="badge badge-red">Bloqueado para EUA</span>` : ""}
+        </div>
+
+        ${record.nota ? `<div class="notice warning">Nota operativa: ${record.nota}</div>` : ""}
+        ${block.blocked ? `<div class="notice danger">${block.reason}</div>` : ""}
+        ${!block.blocked && block.reason ? `<div class="notice warning">${block.reason}</div>` : ""}
+
+        <div class="section-title" style="margin:8px 0 0">Acciones rápidas</div>
+        <div class="modal-grid">
+          <button class="btn btn-success ${block.blocked ? "disabled" : ""}" onclick="updatePassengerStatus('${record.id}','abordo')">Marcar abordó</button>
+          <button class="btn btn-warning" onclick="updatePassengerStatus('${record.id}','revision')">Enviar a revisión</button>
+          <button class="btn btn-dark" onclick="updatePassengerStatus('${record.id}','pendiente')">Volver a pendiente</button>
+          <button class="btn btn-danger" onclick="updatePassengerStatus('${record.id}','noshow')">Marcar no llegó</button>
+        </div>
+      `;
+
+      if(!keepOpen){
+        modal.classList.add("open");
+        document.body.classList.add("modal-open");
+      }
+    }
+
+    function closeModal(){
+      modal.classList.remove("open");
+      document.body.classList.remove("modal-open");
+      modalRecord = null;
+    }
+
+
+
+    function openScannerModal(){
+      document.getElementById('scannerModal').classList.add('open');
+      document.body.classList.add('modal-open');
+      document.getElementById('scanResult').textContent = 'Presiona Iniciar cámara para leer el QR.';
+    }
+
+    async function closeScannerModal(){
+      await stopScanner();
+      document.getElementById('scannerModal').classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+
+    async function startScanner(){
+      const resultBox = document.getElementById('scanResult');
+      try{
+        if(!html5QrCode) html5QrCode = new Html5Qrcode('qrReader');
+        if(scannerRunning) return;
+        scannerRunning = true;
+        resultBox.textContent = 'Cámara activa. Escanea el QR del pasajero.';
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          async (decodedText) => {
+            resultBox.textContent = 'QR detectado. Validando pasajero...';
+            await stopScanner();
+            await handleQrCheckin(decodedText);
+          },
+          () => {}
+        );
+      }catch(err){
+        scannerRunning = false;
+        resultBox.textContent = 'No se pudo abrir la cámara: ' + err;
+      }
+    }
+
+    async function stopScanner(){
+      if(html5QrCode && scannerRunning){
+        try{ await html5QrCode.stop(); }catch(e){}
+        scannerRunning = false;
+      }
+    }
+
+    async function handleQrCheckin(decodedText){
+      const resultBox = document.getElementById('scanResult');
+      let payload = null;
+      try{ payload = JSON.parse(decodedText); }catch(e){
+        resultBox.textContent = 'QR inválido. No corresponde al sistema.';
+        return;
+      }
+      if(payload.type !== 'transporte-checkin' || !payload.linkId){
+        resultBox.textContent = 'QR no reconocido para check-in.';
+        return;
+      }
+
+      let record = passengerRows.find(r => r.id === payload.linkId);
+      if(!record){
+        const tripExists = trips.find(t => t.id === payload.tripId);
+        if(tripExists){
+          tripSelect.value = payload.tripId;
+          await loadTrip(payload.tripId);
+          record = passengerRows.find(r => r.id === payload.linkId);
+        }
+      }
+      if(!record){
+        resultBox.textContent = 'El pasajero no está cargado en el viaje actual. Selecciona el viaje correcto o actualiza.';
+        return;
+      }
+      const p = record.pasajero || {};
+      const block = blockInfo(record);
+      if(block.blocked){
+        resultBox.textContent = `Bloqueado: ${p.nombre}. ${block.reason}`;
+        activityLog.unshift({type:'danger', title:`QR bloqueado: ${p.nombre}`, text:block.reason});
+        renderAll();
+        return;
+      }
+      await updatePassengerStatus(record.id, 'abordo');
+      resultBox.textContent = `Check-in correcto: ${p.nombre} marcado como abordó.`;
+    }
+
+    function bindFilters(){
+      document.querySelectorAll("#filterChips .chip").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#filterChips .chip").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentFilter = btn.dataset.filter;
+          renderPassengers();
+        });
+      });
+
+      document.querySelectorAll("#viewMode button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#viewMode button").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentView = btn.dataset.view;
+          renderPassengers();
+        });
+      });
+    }
+
+    function closeTripReception(){
+      if(!currentTrip){
+        alert("Primero selecciona un viaje.");
+        return;
+      }
+      const abordo = passengerRows.filter(r => r.abordaje_status === "abordo").length;
+      const pendientes = passengerRows.filter(r => r.abordaje_status === "pendiente").length;
+      const revision = passengerRows.filter(r => r.abordaje_status === "revision").length;
+      const blocked = passengerRows.filter(r => blockInfo(r).blocked).length;
+      alert(
+        `Cierre operativo de recepción\n\n` +
+        `Viaje: ${currentTrip.folio}\n` +
+        `Destino: ${currentTrip.destino}\n\n` +
+        `Abordados: ${abordo}\n` +
+        `Pendientes: ${pendientes}\n` +
+        `En revisión: ${revision}\n` +
+        `Bloqueados EUA: ${blocked}\n\n` +
+        `En la siguiente fase esto puede generar el cierre definitivo y reporte de salida.`
+      );
+    }
+
+    searchInput.addEventListener("input", renderPassengers);
+    sortSelect.addEventListener("change", renderPassengers);
+
+    document.getElementById("btnLoadTrip").addEventListener("click", async () => {
+      await loadTrip(tripSelect.value);
+    });
+    document.getElementById("btnRefresh").addEventListener("click", async () => {
+      await loadTrips();
+    });
+    document.getElementById("btnClearLog").addEventListener("click", () => {
+      activityLog = [];
+      renderActivity();
+    });
+    document.getElementById("btnCompleteTrip").addEventListener("click", closeTripReception);
+    document.getElementById("btnCompleteTripBottom").addEventListener("click", closeTripReception);
+    document.getElementById("btnCloseModal").addEventListener("click", closeModal);
+    document.getElementById("btnOpenScanner").addEventListener("click", openScannerModal);
+    document.getElementById("btnCloseScanner").addEventListener("click", closeScannerModal);
+    document.getElementById("btnStartScanner").addEventListener("click", startScanner);
+    document.getElementById("btnStopScanner").addEventListener("click", stopScanner);
+    modal.addEventListener("click", (e) => { if(e.target === modal) closeModal(); });
+    document.getElementById("scannerModal").addEventListener("click", (e) => { if(e.target.id === "scannerModal") closeScannerModal(); });
+
+    window.updatePassengerStatus = updatePassengerStatus;
+    window.openPassengerModal = openPassengerModal;
+
+    bindFilters();
+    loadTrips();
+  </script>
+</body>
+</html>
